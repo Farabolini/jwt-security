@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+
+  db:
+    environment:
+        MYSQL_DATABASE: ${MYSQL_DATABASE}
+        MYSQL_ROOT_PASSWORD: ${ROOT_PASSWORD}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    image: mysql:latest
+    container_name: db
+    restart: always
+    networks:
+      - spring-mysql
+    ports:
+    - "3306:3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "db" ]
+      timeout: 20s
+      retries: 10
+
+  security-project:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    restart: always
+    container_name: security-project
+    ports:
+    - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DB_URL}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET_KEY}
+      server.address: 0.0.0.0
+    networks:
+      - spring-mysql
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  spring-mysql:
+    name: spring-mysql
+    driver: bridge
